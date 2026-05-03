@@ -1,0 +1,27 @@
+/CLAUDE.md
+
+# Build output
+target/
+*.class
+
+# Maven wrapper (optional)
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime data
+data/
+*.log
+logs/
