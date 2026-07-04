@@ -9,7 +9,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
-@TestPropertySource(properties = {"minidynamo.node-id=node1", "minidynamo.seeds=localhost:8080"})
+@TestPropertySource(
+        properties = {
+            "minidynamo.node-id=node1",
+            "minidynamo.seeds=node1:8080",
+            "minidynamo.storage-engine=inmemory"
+        })
 class MiniDynamoApplicationTests {
 
     @Autowired MiniDynamoProperties props;
