@@ -7,41 +7,82 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.minidynamo.config.MiniDynamoProperties;
+import com.minidynamo.coordinator.Coordinator;
+import com.minidynamo.membership.ClusterMembership;
+import com.minidynamo.replication.InternalTransport;
+import com.minidynamo.ring.Node;
 import com.minidynamo.storage.InMemoryStorageEngine;
+import com.minidynamo.versioning.Record;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
+import java.util.Optional;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class KvControllerTest {
 
-    private MockMvc mvc;
+    /** Single-node coordinator: quorum met locally (N=R=W=1). */
+    private static MockMvc singleNode() {
+        return mvc(1, 1, 1);
+    }
 
-    @BeforeEach
-    void setUp() {
-        MiniDynamoProperties props =
-                new MiniDynamoProperties(
-                        "node1", List.of("localhost:8080"), 0, 0, 0, 0, "inmemory", 0, 0, 0, 0);
-        mvc = MockMvcBuilders.standaloneSetup(new KvController(new InMemoryStorageEngine(), props))
-                .build();
+    /** N=3,R=W=2 but only one node in the ring: every request fails quorum. */
+    private static MockMvc underQuorum() {
+        return mvc(3, 2, 2);
+    }
+
+    private static MockMvc mvc(int n, int r, int w) {
+        MiniDynamoProperties props = new MiniDynamoProperties(
+                "node1", List.of(), n, r, w, 128, "inmemory", 1000, 5000, 3_600_000, 86_400_000);
+        ServerProperties server = new ServerProperties();
+        server.setPort(8080);
+        Coordinator coordinator = new Coordinator(
+                new ClusterMembership(props, server),
+                new InMemoryStorageEngine(),
+                unreachableTransport(),
+                Executors.newSingleThreadExecutor(),
+                props);
+        return MockMvcBuilders.standaloneSetup(new KvController(coordinator)).build();
+    }
+
+    private static InternalTransport unreachableTransport() {
+        return new InternalTransport() {
+            @Override
+            public void write(Node node, String key, Record record) {
+                throw new UnsupportedOperationException("no peers in single-node test");
+            }
+
+            @Override
+            public Optional<Record> read(Node node, String key) {
+                throw new UnsupportedOperationException("no peers in single-node test");
+            }
+        };
     }
 
     @Test
     void getMissingKeyReturns404() throws Exception {
-        mvc.perform(get("/kv/missing")).andExpect(status().isNotFound());
+        singleNode().perform(get("/kv/missing")).andExpect(status().isNotFound());
     }
 
     @Test
     void putThenGetReturnsValue() throws Exception {
+        MockMvc mvc = singleNode();
         mvc.perform(put("/kv/foo").content("bar")).andExpect(status().isOk());
         mvc.perform(get("/kv/foo")).andExpect(status().isOk()).andExpect(content().string("bar"));
     }
 
     @Test
     void deleteThenGetReturns404() throws Exception {
+        MockMvc mvc = singleNode();
         mvc.perform(put("/kv/foo").content("bar")).andExpect(status().isOk());
         mvc.perform(delete("/kv/foo")).andExpect(status().isOk());
         mvc.perform(get("/kv/foo")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returns503WhenQuorumCannotBeMet() throws Exception {
+        underQuorum().perform(put("/kv/foo").content("bar")).andExpect(status().isServiceUnavailable());
     }
 }
