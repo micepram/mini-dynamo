@@ -16,8 +16,4 @@ echo "  $(curl -fsS "$N2/kv/color")"
 echo "GET color via node3:"
 echo "  $(curl -fsS "$N3/kv/color")"
 
-echo "DELETE color via node2"
-curl -fsS -X DELETE "$N2/kv/color" >/dev/null && echo "  ok"
-
-echo "GET color via node1 (expect 404):"
-curl -s -o /dev/null -w "  HTTP %{http_code}\n" "$N1/kv/color"
+# Delete/tombstone convergence lands in Tier 2 (LWW + read repair); demoed there.

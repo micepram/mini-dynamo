@@ -12,10 +12,10 @@ with a node-id tiebreak. No master; every node runs identical code.
 
 ## Status
 
-Built in tiers (spec §10). Current: **Tier 1 — ring & replication** next.
+Built in tiers (spec §10). Current: **Tier 2 — LWW versioning & read repair** next.
 
 - [x] Tier 0 — single node: `get`/`put`/`delete` over REST, pluggable storage.
-- [ ] Tier 1 — ring & replication: consistent hashing, preference list, N/R/W quorum.
+- [x] Tier 1 — ring & replication: consistent hashing, preference list, N/R/W quorum.
 - [ ] Tier 2 — LWW versioning & read repair.
 - [ ] Tier 3 — membership (gossip), sloppy quorum, hinted handoff.
 - [ ] Tier 4 (stretch) — Merkle anti-entropy, tombstone GC, metrics.
@@ -29,13 +29,26 @@ make test       # tests only
 
 JDK 21 is required; the Makefile pins `JAVA_HOME` to a Java 21 home.
 
-## Run (single node)
+## Run
+
+Single node:
 
 ```bash
-NODE_ID=node1 SEEDS=localhost:8080 STORAGE_ENGINE=inmemory ./gradlew bootRun
+NODE_ID=node1 SEEDS=node1:8080 STORAGE_ENGINE=inmemory ./gradlew bootRun
 ```
 
-Cluster (`docker compose`) and demo scripts land in Tier 1.
+3-node cluster (nodes on host ports 8081–8083):
+
+```bash
+make up        # docker compose up --build -d
+make demo      # curl: write on node1, read from node2/node3
+make down
+```
+
+> **Testcontainers note:** `ClusterIntegrationTest` stands the cluster up
+> automatically, but auto-skips if Testcontainers can't reach Docker. On recent
+> Docker Desktop (engine API min ≥ 1.44) the bundled docker-java may fail
+> detection; the Tier 1 gate is then verified via `make up` + `make demo`.
 
 ## Configuration
 
