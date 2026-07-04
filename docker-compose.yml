@@ -1,0 +1,29 @@
+# 3-node mini-dynamo cluster. Each node runs the identical image; SEEDS enumerates every
+# node (Tier 1 static membership). Service names double as node ids / hostnames.
+services:
+  node1:
+    build: .
+    environment:
+      NODE_ID: node1
+      SEEDS: node1:8080,node2:8080,node3:8080
+      STORAGE_ENGINE: inmemory
+    ports:
+      - "8081:8080"
+
+  node2:
+    build: .
+    environment:
+      NODE_ID: node2
+      SEEDS: node1:8080,node2:8080,node3:8080
+      STORAGE_ENGINE: inmemory
+    ports:
+      - "8082:8080"
+
+  node3:
+    build: .
+    environment:
+      NODE_ID: node3
+      SEEDS: node1:8080,node2:8080,node3:8080
+      STORAGE_ENGINE: inmemory
+    ports:
+      - "8083:8080"
