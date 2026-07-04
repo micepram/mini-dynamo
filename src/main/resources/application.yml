@@ -1,6 +1,14 @@
 server:
   port: ${SERVER_PORT:8080}
 
+spring:
+  mvc:
+    formcontent:
+      filter:
+        # Values are raw request bodies; disable form-body parsing so form-encoded
+        # PUT/DELETE payloads (e.g. curl's default `-d`) reach the handler intact.
+        enabled: false
+
 minidynamo:
   node-id: ${NODE_ID:}
   seeds: ${SEEDS:}
