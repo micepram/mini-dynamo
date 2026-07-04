@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.minidynamo.config.MiniDynamoProperties;
 import com.minidynamo.coordinator.Coordinator;
 import com.minidynamo.membership.ClusterMembership;
+import com.minidynamo.membership.MembershipTable;
 import com.minidynamo.replication.InternalTransport;
 import com.minidynamo.replication.LocalReplica;
 import com.minidynamo.ring.Node;
@@ -19,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -38,11 +38,11 @@ class KvControllerTest {
     private static MockMvc mvc(int n, int r, int w) {
         MiniDynamoProperties props = new MiniDynamoProperties(
                 "node1", List.of(), n, r, w, 128, "inmemory", 1000, 5000, 3_600_000, 86_400_000);
-        ServerProperties server = new ServerProperties();
-        server.setPort(8080);
         LamportClock clock = new LamportClock();
+        MembershipTable table = new MembershipTable(
+                new Node("node1", 8080), List.of(), 5000, 1, System::currentTimeMillis);
         Coordinator coordinator = new Coordinator(
-                new ClusterMembership(props, server),
+                new ClusterMembership(table, props),
                 new LocalReplica(new InMemoryStorageEngine(), clock),
                 unreachableTransport(),
                 Executors.newSingleThreadExecutor(),
