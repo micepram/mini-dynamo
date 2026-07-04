@@ -12,11 +12,11 @@ with a node-id tiebreak. No master; every node runs identical code.
 
 ## Status
 
-Built in tiers (spec §10). Current: **Tier 2 — LWW versioning & read repair** next.
+Built in tiers (spec §10). Current: **Tier 3 — membership & resilience** next.
 
 - [x] Tier 0 — single node: `get`/`put`/`delete` over REST, pluggable storage.
 - [x] Tier 1 — ring & replication: consistent hashing, preference list, N/R/W quorum.
-- [ ] Tier 2 — LWW versioning & read repair.
+- [x] Tier 2 — LWW versioning & read repair: Lamport clock, deterministic resolver, tombstone convergence.
 - [ ] Tier 3 — membership (gossip), sloppy quorum, hinted handoff.
 - [ ] Tier 4 (stretch) — Merkle anti-entropy, tombstone GC, metrics.
 
