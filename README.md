@@ -54,4 +54,4 @@ make down
 ## Configuration
 
 Environment-driven, bound through one `@ConfigurationProperties("minidynamo")`
-class. See [`CLAUDE.md`](CLAUDE.md) §5 for the full key/default table.
+class.
