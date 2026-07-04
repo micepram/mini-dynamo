@@ -2,6 +2,7 @@ package com.minidynamo.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.minidynamo.versioning.LwwResolver;
 import com.minidynamo.versioning.Record;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
@@ -51,6 +52,29 @@ abstract class StorageEngineContract {
         assertThat(got).isPresent();
         assertThat(got.get().deleted()).isTrue();
         assertThat(got.get().lamportTs()).isEqualTo(5);
+    }
+
+    @Test
+    void mergeKeepsTheLwwWinnerAndReturnsIt() {
+        engine().put("k", Record.value(utf8("old"), 3, "node1"));
+
+        // Incoming loses (lower ts) -> stored record unchanged.
+        Record afterLoser = engine().merge("k", Record.value(utf8("stale"), 1, "node1"), LwwResolver::resolve);
+        assertThat(afterLoser.value()).isEqualTo(utf8("old"));
+        assertThat(engine().get("k")).get().extracting(Record::value).isEqualTo(utf8("old"));
+
+        // Incoming wins (higher ts) -> stored record replaced.
+        Record afterWinner = engine().merge("k", Record.value(utf8("new"), 9, "node1"), LwwResolver::resolve);
+        assertThat(afterWinner.value()).isEqualTo(utf8("new"));
+        assertThat(engine().get("k")).get().extracting(Record::value).isEqualTo(utf8("new"));
+    }
+
+    @Test
+    void mergeOnAbsentKeyStoresIncoming() {
+        Record stored = engine().merge("fresh", Record.value(utf8("v"), 1, "node1"), LwwResolver::resolve);
+
+        assertThat(stored.value()).isEqualTo(utf8("v"));
+        assertThat(engine().get("fresh")).isPresent();
     }
 
     @Test
