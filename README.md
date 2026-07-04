@@ -7,8 +7,7 @@ A from-scratch reimplementation of the core ideas in Amazon's Dynamo
 **Conflict model:** last-write-wins (LWW) using a Lamport logical clock per key
 with a node-id tiebreak. No master; every node runs identical code.
 
-> Authoritative spec: [`docs/spec.md`](docs/spec.md). Working conventions:
-> [`CLAUDE.md`](CLAUDE.md). Design decisions & tradeoffs: [`DESIGN.md`](DESIGN.md).
+> Authoritative spec: [`docs/spec.md`](docs/spec.md). Design decisions & tradeoffs: [`DESIGN.md`](DESIGN.md).
 
 ## Status
 
