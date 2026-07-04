@@ -2,6 +2,7 @@ package com.minidynamo.replication;
 
 import com.minidynamo.ring.Node;
 import com.minidynamo.versioning.Record;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -12,7 +13,8 @@ import java.util.Optional;
  */
 public interface InternalTransport {
 
-    void write(Node node, String key, Record record);
+    /** Write a record to a replica, optionally with hints for unreachable intended owners. */
+    void write(Node node, String key, Record record, List<String> hintFor);
 
     Optional<Record> read(Node node, String key);
 }

@@ -21,3 +21,7 @@ kill-node:
 
 demo:
 	./scripts/demo.sh
+
+# Sloppy-quorum + hinted-handoff demo (kills and recovers a node)
+demo-resilience:
+	./scripts/resilience-demo.sh
