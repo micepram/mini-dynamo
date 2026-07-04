@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.minidynamo.config.MiniDynamoProperties;
 import com.minidynamo.coordinator.Coordinator;
+import com.minidynamo.failure.HintStore;
 import com.minidynamo.membership.ClusterMembership;
 import com.minidynamo.membership.MembershipTable;
 import com.minidynamo.replication.InternalTransport;
@@ -44,6 +45,7 @@ class KvControllerTest {
         Coordinator coordinator = new Coordinator(
                 new ClusterMembership(table, props),
                 new LocalReplica(new InMemoryStorageEngine(), clock),
+                new HintStore(),
                 unreachableTransport(),
                 Executors.newSingleThreadExecutor(),
                 clock,
@@ -54,7 +56,7 @@ class KvControllerTest {
     private static InternalTransport unreachableTransport() {
         return new InternalTransport() {
             @Override
-            public void write(Node node, String key, Record record) {
+            public void write(Node node, String key, Record record, List<String> hintFor) {
                 throw new UnsupportedOperationException("no peers in single-node test");
             }
 
