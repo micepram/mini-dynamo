@@ -12,12 +12,12 @@ with a node-id tiebreak. No master; every node runs identical code.
 
 ## Status
 
-Built in tiers (spec §10). Current: **Tier 3 — membership & resilience** next.
+Built in tiers (spec §10). Current: **Tier 4 (stretch)** next.
 
 - [x] Tier 0 — single node: `get`/`put`/`delete` over REST, pluggable storage.
 - [x] Tier 1 — ring & replication: consistent hashing, preference list, N/R/W quorum.
 - [x] Tier 2 — LWW versioning & read repair: Lamport clock, deterministic resolver, tombstone convergence.
-- [ ] Tier 3 — membership (gossip), sloppy quorum, hinted handoff.
+- [x] Tier 3 — membership & resilience: gossip + heartbeat failure detector, sloppy quorum, hinted handoff.
 - [ ] Tier 4 (stretch) — Merkle anti-entropy, tombstone GC, metrics.
 
 ## Build & test
@@ -40,8 +40,9 @@ NODE_ID=node1 SEEDS=node1:8080 STORAGE_ENGINE=inmemory ./gradlew bootRun
 3-node cluster (nodes on host ports 8081–8083):
 
 ```bash
-make up        # docker compose up --build -d
-make demo      # curl: write on node1, read from node2/node3
+make up               # docker compose up --build -d
+make demo             # curl: write/read/LWW/delete across coordinators
+make demo-resilience  # kill a node: sloppy quorum stays available, hinted handoff on recovery
 make down
 ```
 

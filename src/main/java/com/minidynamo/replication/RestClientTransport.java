@@ -2,6 +2,7 @@ package com.minidynamo.replication;
 
 import com.minidynamo.ring.Node;
 import com.minidynamo.versioning.Record;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -18,11 +19,11 @@ public class RestClientTransport implements InternalTransport {
     }
 
     @Override
-    public void write(Node node, String key, Record record) {
+    public void write(Node node, String key, Record record, List<String> hintFor) {
         client.put()
                 .uri(node.baseUrl() + "/internal/kv/{key}", key)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(record)
+                .body(new ReplicaWrite(record, hintFor))
                 .retrieve()
                 .toBodilessEntity();
     }
