@@ -1,0 +1,23 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  mvc:
+    formcontent:
+      filter:
+        # Values are raw request bodies; disable form-body parsing so form-encoded
+        # PUT/DELETE payloads (e.g. curl's default `-d`) reach the handler intact.
+        enabled: false
+
+minidynamo:
+  node-id: ${NODE_ID:}
+  seeds: ${SEEDS:}
+  n: ${MINIDYNAMO_N:3}
+  r: ${MINIDYNAMO_R:2}
+  w: ${MINIDYNAMO_W:2}
+  vnodes: ${MINIDYNAMO_VNODES:128}
+  storage-engine: ${STORAGE_ENGINE:rocksdb}
+  gossip-interval-ms: ${GOSSIP_INTERVAL_MS:1000}
+  failure-timeout-ms: ${FAILURE_TIMEOUT_MS:5000}
+  hint-retention-ms: ${HINT_RETENTION_MS:3600000}
+  tombstone-gc-ms: ${TOMBSTONE_GC_MS:86400000}
