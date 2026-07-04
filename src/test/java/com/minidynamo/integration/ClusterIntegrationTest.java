@@ -1,13 +1,11 @@
 package com.minidynamo.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.containers.wait.strategy.WaitStrategy;
@@ -56,15 +54,6 @@ class ClusterIntegrationTest {
         assertThat(get("node3", "color")).isEqualTo("blue");
     }
 
-    @Test
-    void deletePropagatesAcrossTheCluster() {
-        put("node2", "temp", "value");
-        assertThat(get("node3", "temp")).isEqualTo("value");
-
-        http.delete().uri(base("node2") + "/kv/temp").retrieve().toBodilessEntity();
-
-        assertThatThrownBy(() -> get("node1", "temp"))
-                .isInstanceOf(RestClientResponseException.class)
-                .satisfies(e -> assertThat(((RestClientResponseException) e).getStatusCode().value()).isEqualTo(404));
-    }
+    // Delete/tombstone convergence needs LWW resolution + read repair (Tier 2), so it is
+    // asserted there rather than here.
 }
