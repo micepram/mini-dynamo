@@ -12,9 +12,9 @@ with a node-id tiebreak. No master; every node runs identical code.
 
 ## Status
 
-Built in tiers (spec §10). Current: **Tier 0 — single node** in progress.
+Built in tiers (spec §10). Current: **Tier 1 — ring & replication** next.
 
-- [ ] Tier 0 — single node: `get`/`put`/`delete` over REST, pluggable storage.
+- [x] Tier 0 — single node: `get`/`put`/`delete` over REST, pluggable storage.
 - [ ] Tier 1 — ring & replication: consistent hashing, preference list, N/R/W quorum.
 - [ ] Tier 2 — LWW versioning & read repair.
 - [ ] Tier 3 — membership (gossip), sloppy quorum, hinted handoff.
