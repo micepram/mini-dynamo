@@ -10,8 +10,10 @@ import com.minidynamo.config.MiniDynamoProperties;
 import com.minidynamo.coordinator.Coordinator;
 import com.minidynamo.membership.ClusterMembership;
 import com.minidynamo.replication.InternalTransport;
+import com.minidynamo.replication.LocalReplica;
 import com.minidynamo.ring.Node;
 import com.minidynamo.storage.InMemoryStorageEngine;
+import com.minidynamo.versioning.LamportClock;
 import com.minidynamo.versioning.Record;
 import java.util.List;
 import java.util.Optional;
@@ -38,11 +40,13 @@ class KvControllerTest {
                 "node1", List.of(), n, r, w, 128, "inmemory", 1000, 5000, 3_600_000, 86_400_000);
         ServerProperties server = new ServerProperties();
         server.setPort(8080);
+        LamportClock clock = new LamportClock();
         Coordinator coordinator = new Coordinator(
                 new ClusterMembership(props, server),
-                new InMemoryStorageEngine(),
+                new LocalReplica(new InMemoryStorageEngine(), clock),
                 unreachableTransport(),
                 Executors.newSingleThreadExecutor(),
+                clock,
                 props);
         return MockMvcBuilders.standaloneSetup(new KvController(coordinator)).build();
     }

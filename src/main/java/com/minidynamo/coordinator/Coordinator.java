@@ -3,51 +3,54 @@ package com.minidynamo.coordinator;
 import com.minidynamo.config.MiniDynamoProperties;
 import com.minidynamo.membership.ClusterMembership;
 import com.minidynamo.replication.InternalTransport;
+import com.minidynamo.replication.LocalReplica;
 import com.minidynamo.replication.QuorumCollector;
 import com.minidynamo.replication.QuorumNotMetException;
 import com.minidynamo.ring.Node;
-import com.minidynamo.storage.StorageEngine;
+import com.minidynamo.versioning.LwwResolver;
 import com.minidynamo.versioning.Record;
+import com.minidynamo.versioning.VersionStamper;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Per-request coordination (spec §5). Any node can coordinate: it computes the preference list,
- * fans out replica reads/writes to all N nodes concurrently, and returns as soon as the quorum
- * ({@code W} acks / {@code R} responses) is met. Self is written/read locally; peers over the
- * {@link InternalTransport}. The coordinator's local write naturally counts toward W.
+ * Per-request coordination (spec §5). Any node coordinates: it stamps a Lamport timestamp, fans
+ * out to all N replicas, and returns at the quorum (W acks / R responses). Reads resolve the
+ * responses by the LWW rule and asynchronously repair any replica that returned a stale record.
  */
 @Component
 public class Coordinator {
 
+    private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
+
     private final ClusterMembership membership;
-    private final StorageEngine storage;
+    private final LocalReplica local;
     private final InternalTransport transport;
     private final ExecutorService executor;
+    private final VersionStamper clock;
     private final String coordinatorId;
     private final int n;
     private final int r;
     private final int w;
 
-    // ponytail: Tier 1 placeholder timestamp source. Tier 2 replaces this with the Lamport
-    // VersionStamper (advance to max(local, seen) then ++). Fine while there are no conflicts.
-    private final AtomicLong ts = new AtomicLong();
-
     public Coordinator(
             ClusterMembership membership,
-            StorageEngine storage,
+            LocalReplica local,
             InternalTransport transport,
             ExecutorService coordinatorExecutor,
+            VersionStamper clock,
             MiniDynamoProperties props) {
         this.membership = membership;
-        this.storage = storage;
+        this.local = local;
         this.transport = transport;
         this.executor = coordinatorExecutor;
+        this.clock = clock;
         this.coordinatorId = props.nodeId();
         this.n = props.n();
         this.r = props.r();
@@ -55,28 +58,28 @@ public class Coordinator {
     }
 
     public void put(String key, byte[] value) {
-        write(key, Record.value(value, ts.incrementAndGet(), coordinatorId));
+        write(key, Record.value(value, clock.tick(), coordinatorId));
     }
 
     public void delete(String key) {
-        write(key, Record.tombstone(ts.incrementAndGet(), coordinatorId));
+        write(key, Record.tombstone(clock.tick(), coordinatorId));
     }
 
     /** Returns the value, or empty if the key is absent or resolves to a tombstone (→ 404). */
     public Optional<byte[]> get(String key) {
         List<Node> preferenceList = membership.ring().preferenceList(key, n);
-        List<CompletableFuture<Optional<Record>>> reads = preferenceList.stream()
-                .map(node -> CompletableFuture.supplyAsync(() -> readReplica(node, key), executor))
+        List<CompletableFuture<NodeRead>> reads = preferenceList.stream()
+                .map(node -> CompletableFuture.supplyAsync(() -> new NodeRead(node, readReplica(node, key)), executor))
                 .toList();
 
-        List<Optional<Record>> responses = join(QuorumCollector.collect(reads, r));
-        // Tier 1: return any present, non-tombstone record. Tier 2 replaces with LWW resolution
-        // across all responses plus read repair of stale replicas.
-        return responses.stream()
-                .flatMap(Optional::stream)
-                .filter(record -> !record.deleted())
-                .map(Record::value)
-                .findFirst();
+        List<NodeRead> responses = join(QuorumCollector.collect(reads, r));
+        responses.forEach(nr -> nr.record().ifPresent(rec -> clock.observe(rec.lamportTs())));
+
+        Optional<Record> winner = LwwResolver.resolve(
+                responses.stream().flatMap(nr -> nr.record().stream()).toList());
+        winner.ifPresent(w -> readRepair(key, w, responses));
+
+        return winner.filter(record -> !record.deleted()).map(Record::value);
     }
 
     private void write(String key, Record record) {
@@ -93,9 +96,24 @@ public class Coordinator {
         join(QuorumCollector.collect(writes, w));
     }
 
+    /** Push the winning record to any responder that returned a stale or missing record (spec §5.2). */
+    private void readRepair(String key, Record winner, List<NodeRead> responses) {
+        for (NodeRead response : responses) {
+            boolean upToDate = response.record().map(rec -> LwwResolver.sameVersion(rec, winner)).orElse(false);
+            if (!upToDate) {
+                CompletableFuture.runAsync(() -> writeReplica(response.node(), key, winner), executor)
+                        .whenComplete((v, error) -> {
+                            if (error != null) {
+                                log.debug("read repair to {} failed for key {}", response.node().address(), key);
+                            }
+                        });
+            }
+        }
+    }
+
     private void writeReplica(Node node, String key, Record record) {
         if (node.equals(membership.self())) {
-            storage.put(key, record);
+            local.apply(key, record);
         } else {
             transport.write(node, key, record);
         }
@@ -103,7 +121,7 @@ public class Coordinator {
 
     private Optional<Record> readReplica(Node node, String key) {
         if (node.equals(membership.self())) {
-            return storage.get(key);
+            return local.read(key);
         }
         return transport.read(node, key);
     }
@@ -118,4 +136,7 @@ public class Coordinator {
             throw e;
         }
     }
+
+    /** A replica's response to a read: the node and the record it returned (empty = absent). */
+    private record NodeRead(Node node, Optional<Record> record) {}
 }

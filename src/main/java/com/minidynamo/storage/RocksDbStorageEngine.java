@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BinaryOperator;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -53,6 +54,16 @@ public class RocksDbStorageEngine implements StorageEngine, Closeable {
         } catch (RocksDBException e) {
             throw new IllegalStateException("RocksDB put failed for key " + key, e);
         }
+    }
+
+    @Override
+    public synchronized Record merge(String key, Record incoming, BinaryOperator<Record> resolver) {
+        // ponytail: coarse per-engine lock for read-modify-write. Fine single-process; stripe
+        // per key if merge throughput ever matters.
+        Record current = get(key).orElse(null);
+        Record winner = current == null ? incoming : resolver.apply(incoming, current);
+        put(key, winner);
+        return winner;
     }
 
     @Override
