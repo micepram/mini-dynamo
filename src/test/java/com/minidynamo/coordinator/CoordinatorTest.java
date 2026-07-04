@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.minidynamo.config.MiniDynamoProperties;
 import com.minidynamo.membership.ClusterMembership;
+import com.minidynamo.membership.MembershipTable;
 import com.minidynamo.replication.InternalTransport;
 import com.minidynamo.replication.LocalReplica;
 import com.minidynamo.replication.QuorumNotMetException;
@@ -27,7 +28,6 @@ import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.web.ServerProperties;
 
 /** N=3 cluster with self local and two peers behind a fake (LWW-merging) transport. */
 class CoordinatorTest {
@@ -130,19 +130,15 @@ class CoordinatorTest {
         MiniDynamoProperties props = new MiniDynamoProperties(
                 "node1", List.of("node1:8080", "node2:8080", "node3:8080"),
                 n, r, w, 128, "inmemory", 1000, 5000, 3_600_000, 86_400_000);
+        MembershipTable table = new MembershipTable(
+                new Node("node1", 8080), List.of(NODE2, NODE3), 5000, 1, System::currentTimeMillis);
         LamportClock clock = new LamportClock(); // shared by self replica and coordinator (one node)
         LocalReplica local = new LocalReplica(selfStorage, clock);
-        return new Coordinator(new ClusterMembership(props, serverOn(8080)), local, new FakeTransport(), executor, clock, props);
+        return new Coordinator(new ClusterMembership(table, props), local, new FakeTransport(), executor, clock, props);
     }
 
     private static byte[] bytes(String s) {
         return s.getBytes(StandardCharsets.UTF_8);
-    }
-
-    private static ServerProperties serverOn(int port) {
-        ServerProperties sp = new ServerProperties();
-        sp.setPort(port);
-        return sp;
     }
 
     /** Routes peer calls to in-memory stores with LWW-merge (mirrors a real replica); down -> throw. */
