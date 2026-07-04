@@ -1,13 +1,10 @@
 /CLAUDE.md
 
 # Build output
+build/
+.gradle/
 target/
 *.class
-
-# Maven wrapper (optional)
-.mvn/
-mvnw
-mvnw.cmd
 
 # IDE
 .idea/
