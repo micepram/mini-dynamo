@@ -23,6 +23,12 @@ public interface StorageEngine {
      */
     Record merge(String key, Record incoming, BinaryOperator<Record> resolver);
 
-    /** Snapshot of all entries, including tombstones. Used by tests and (later) anti-entropy. */
+    /** Snapshot of all entries, including tombstones. Used by tests and anti-entropy. */
     Map<String, Record> entries();
+
+    /**
+     * Hard-remove a key. Used only by tombstone GC after the retention window (spec §8) — never on
+     * the write path, where a delete is a tombstone {@link Record}.
+     */
+    void remove(String key);
 }

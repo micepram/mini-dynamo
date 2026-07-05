@@ -31,4 +31,9 @@ public class InMemoryStorageEngine implements StorageEngine {
     public Map<String, Record> entries() {
         return Map.copyOf(map);
     }
+
+    @Override
+    public void remove(String key) {
+        map.remove(key);
+    }
 }

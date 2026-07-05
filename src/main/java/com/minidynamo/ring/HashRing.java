@@ -57,8 +57,8 @@ public final class HashRing {
         return vnodes;
     }
 
-    /** SHA-256 of the input, first 8 bytes folded into a long. Deterministic. */
-    static long hash(String input) {
+    /** SHA-256 of the input, first 8 bytes folded into a long. Deterministic. Reused by anti-entropy bucketing. */
+    public static long hash(String input) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
                     .digest(input.getBytes(StandardCharsets.UTF_8));

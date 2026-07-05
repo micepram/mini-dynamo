@@ -78,6 +78,15 @@ public class RocksDbStorageEngine implements StorageEngine, Closeable {
     }
 
     @Override
+    public void remove(String key) {
+        try {
+            db.delete(bytes(key));
+        } catch (RocksDBException e) {
+            throw new IllegalStateException("RocksDB delete failed for key " + key, e);
+        }
+    }
+
+    @Override
     public void close() {
         db.close();
     }

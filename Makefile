@@ -1,5 +1,8 @@
 # mini-dynamo — common flows. JDK 21 is pinned for Gradle invocations.
-export JAVA_HOME := $(shell /usr/libexec/java_home -v 21 2>/dev/null || echo /opt/homebrew/opt/openjdk@21)
+# Prefer the Homebrew openjdk@21 (keg-only, so `java_home -v 21` can't see it and would
+# silently fall back to a newer JDK); otherwise let java_home resolve a registered 21.
+JDK21_BREW := /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+export JAVA_HOME := $(shell [ -d $(JDK21_BREW) ] && echo $(JDK21_BREW) || /usr/libexec/java_home -v 21)
 
 .PHONY: build test up down kill-node demo
 
