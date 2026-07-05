@@ -18,8 +18,6 @@ Built in tiers (spec §10). Current: **Tier 4 (stretch)** in progress.
 - [x] Tier 2 — LWW versioning & read repair: Lamport clock, deterministic resolver, tombstone convergence.
 - [x] Tier 3 — membership & resilience: gossip + heartbeat failure detector, sloppy quorum, hinted handoff.
 - [x] Tier 4 (stretch) — Merkle-tree anti-entropy, tombstone GC.
-- [ ] Tier 4 optional — phi-accrual failure detector, Micrometer/Prometheus metrics (deferred).
-
 ## Build & test
 
 ```bash
