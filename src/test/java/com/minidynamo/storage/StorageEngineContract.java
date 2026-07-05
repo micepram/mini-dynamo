@@ -78,6 +78,15 @@ abstract class StorageEngineContract {
     }
 
     @Test
+    void removeHardDeletesAKey() {
+        engine().put("k", Record.tombstone(5, "node1"));
+
+        engine().remove("k");
+
+        assertThat(engine().get("k")).isEmpty();
+    }
+
+    @Test
     void entriesSnapshotIncludesTombstonesAndValues() {
         engine().put("a", Record.value(utf8("1"), 1, "node1"));
         engine().put("b", Record.tombstone(2, "node1"));

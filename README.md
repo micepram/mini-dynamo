@@ -11,13 +11,14 @@ with a node-id tiebreak. No master; every node runs identical code.
 
 ## Status
 
-Built in tiers (spec §10). Current: **Tier 4 (stretch)** next.
+Built in tiers (spec §10). Current: **Tier 4 (stretch)** in progress.
 
 - [x] Tier 0 — single node: `get`/`put`/`delete` over REST, pluggable storage.
 - [x] Tier 1 — ring & replication: consistent hashing, preference list, N/R/W quorum.
 - [x] Tier 2 — LWW versioning & read repair: Lamport clock, deterministic resolver, tombstone convergence.
 - [x] Tier 3 — membership & resilience: gossip + heartbeat failure detector, sloppy quorum, hinted handoff.
-- [ ] Tier 4 (stretch) — Merkle anti-entropy, tombstone GC, metrics.
+- [x] Tier 4 (stretch) — Merkle-tree anti-entropy, tombstone GC.
+- [ ] Tier 4 optional — phi-accrual failure detector, Micrometer/Prometheus metrics (deferred).
 
 ## Build & test
 
